@@ -26,4 +26,4 @@ $eventlogPath="C:\OpenStack\Logs\Eventlog"
 $eventlogcsspath = "$templateDir\eventlog_css.txt"
 $eventlogjspath = "$templateDir\eventlog_js.txt"
 $downloadLocation = "http://10.0.110.1/"
-$projectsList = @("oslo.cache", "oslo.concurrency", "oslo.config", "oslo.context", "oslo.db", "oslo.i18n", "oslo.log", "oslo.messaging", "oslo.middleware", "oslo.policy", "oslo.reports", "oslo.rootwrap", "oslo.serialization", "oslo.service", "oslo.utils", "oslo.versionedobjects", "networking-hyperv", "neutron", "nova", "compute-hyperv", "os-win")
+$projectsList = @("oslo.cache", "oslo.concurrency", "oslo.config", "oslo.context", "oslo.db", "oslo.i18n", "oslo.log", "oslo.messaging", "oslo.middleware", "oslo.policy", "oslo.reports", "oslo.rootwrap", "oslo.serialization", "oslo.service", "oslo.utils", "oslo.versionedobjects", "networking-hyperv", "neutron", "nova", "compute-hyperv", "os-win", "oslo.privsep", "os-brick", "os-vif", "keystonemiddleware")

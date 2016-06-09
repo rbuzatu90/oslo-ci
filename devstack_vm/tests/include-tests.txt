@@ -1,2 +1,5 @@
-tempest.
-neutron_fwaas.
+tempest.api.compute.admin
+tempest.api.compute.servers
+tempest.api.compute.test_live_block_migration_negative
+tempest.api.compute.volumes
+tempest.scenario
