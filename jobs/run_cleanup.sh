@@ -1,6 +1,6 @@
 source /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
 source /home/jenkins-slave/tools/keystonerc_admin
-source /usr/local/src/nova-ci/jobs/library.sh
+source /usr/local/src/oslo-ci/jobs/library.sh
 
 set +e
 
@@ -21,7 +21,7 @@ if [ "$IS_DEBUG_JOB" != "yes" ]
         
             echo "Removing devstack VM"
         nova delete "$VMID"
-        /usr/local/src/nova-ci/vlan_allocation.py -r $VMID
+        /usr/local/src/oslo-ci/vlan_allocation.py -r $VMID
         
             echo "Deleting devstack floating IP"
         nova floating-ip-delete "$FLOATING_IP"

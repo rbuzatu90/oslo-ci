@@ -2,8 +2,8 @@
 # Needed to compensate for HyperV building ahead of time
 #
 
-. "C:\OpenStack\nova-ci\HyperV\scripts\config.ps1"
-. "C:\OpenStack\nova-ci\HyperV\scripts\utils.ps1"
+. "C:\OpenStack\oslo-ci\HyperV\scripts\config.ps1"
+. "C:\OpenStack\oslo-ci\HyperV\scripts\utils.ps1"
 
 
 Write-Host "post-build: Stoping the services!"

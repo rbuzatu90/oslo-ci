@@ -2,7 +2,7 @@
 #
 hyperv_node=$1
 # Loading all the needed functions
-source /usr/local/src/nova-ci/jobs/library.sh
+source /usr/local/src/oslo-ci/jobs/library.sh
 
 # Loading parameters
 source /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
