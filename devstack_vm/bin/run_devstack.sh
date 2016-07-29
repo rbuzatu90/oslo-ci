@@ -56,6 +56,8 @@ then
         sed -i 's/^HOST_IP=.*/HOST_IP='$MYIP'/g' "$LOCALRC"
 fi
 
+cd /home/ubuntu/devstack
+git pull
 ./unstack.sh
 
 #Fix for unproper ./unstack.sh
