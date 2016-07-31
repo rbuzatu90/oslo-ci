@@ -2,7 +2,8 @@ Param(
     [Parameter(Mandatory=$true)][string]$devstackIP,
     [string]$branchName='master',
     [string]$buildFor='',
-    [string]$isDebug='no'
+    [string]$isDebug='no',
+    [string]$zuulChange=''
 )
 
 if ($isDebug -eq  'yes') {
@@ -41,6 +42,11 @@ $ErrorActionPreference = "SilentlyContinue"
 Write-Host "Ensuring nova and neutron services are stopped."
 Stop-Service -Name nova-compute -Force
 Stop-Service -Name neutron-hyperv-agent -Force
+
+# At the moment, nova may leak planned vms in case of failed live migrations.
+# We'll have to clean them up, otherwise spawning instances at the same
+# location will fail.
+destroy_planned_vms
 
 Write-Host "Stopping any possible python processes left."
 Stop-Process -Name python -Force
@@ -223,9 +229,19 @@ if ($isDebug -eq  'yes') {
     Get-ChildItem $buildDir
 }
 
+if ($zuulChange -eq '273504') {
+    ExecRetry {
+        GitClonePull "$buildDir\os-brick" "https://git.openstack.org/openstack/os-brick.git" $branchName
 
+        pushd $buildDir\os-brick
 
+        git fetch https://git.openstack.org/openstack/os-brick refs/changes/22/272522/31
+        cherry_pick FETCH_HEAD
 
+        & pip install $buildDir\os-brick
+        popd
+    }
+}
 
 foreach ($projectNameInstall in $projectsList)
 {
@@ -242,8 +258,12 @@ foreach ($projectNameInstall in $projectsList)
 }
 
 
+if (($branchName -ne 'stable/liberty') -and ($branchName -ne 'stable/mitaka')) {
+    $novaConfig = $novaConfig.replace('network_api_class', '#network_api_class')
+}
 
-$cores_count = (gwmi -class Win32_Processor).count * (gwmi -class Win32_Processor)[0].NumberOfCores
+$cpu_array = ([array](gwmi -class Win32_Processor))
+$cores_count = $cpu_array.count * $cpu_array[0].NumberOfCores
 $novaConfig = (gc "$templateDir\nova.conf").replace('[DEVSTACK_IP]', "$devstackIP").Replace('[LOGDIR]', "$openstackLogs").Replace('[RABBITUSER]', $rabbitUser)
 if (!$branchName.CompareTo('master')){
     $novaConfig = $novaConfig.replace('hyperv.nova.driver.HyperVDriver', 'compute_hyperv.driver.HyperVDriver')

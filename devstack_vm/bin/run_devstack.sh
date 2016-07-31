@@ -60,12 +60,13 @@ cd /home/ubuntu/devstack
 git pull
 ./unstack.sh
 
-#Fix for unproper ./unstack.sh
 screen_pid=$(ps auxw | grep -i screen | grep -v grep | awk '{print $2}')
 if [[ -n $screen_pid ]] 
 then
     kill -9 $screen_pid
-    #In case there are "DEAD ????" screens, we remove them
+fi
+
+if `screen -ls | grep "Dead"`; then
     screen -wipe
 fi
 
