@@ -91,6 +91,7 @@ if [ "$IS_DEBUG_JOB" != "yes" ]
 
 	else
 		TIMESTAMP=$(date +%d-%m-%Y_%H-%M)
+                echo TIMESTAMP=$TIMESTAMP | tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt 
 		echo "Creating logs destination folder"
         	ssh -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH_KEY logs@logs.openstack.tld "if [ -z '$ZUUL_CHANGE' ] || [ -z '$ZUUL_PATCHSET' ]; then echo 'Missing parameters!'; exit 1; elif [ ! -d /srv/logs/debug/$logs_project/$ZUUL_CHANGE/$ZUUL_PATCHSET/$TIMESTAMP ]; then mkdir -p /srv/logs/debug/$logs_project/$ZUUL_CHANGE/$ZUUL_PATCHSET/$TIMESTAMP; else rm -rf /srv/logs/debug/$logs_project/$ZUUL_CHANGE/$ZUUL_PATCHSET/$TIMESTAMP/*; fi"
 
