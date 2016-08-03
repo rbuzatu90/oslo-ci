@@ -258,10 +258,6 @@ foreach ($projectNameInstall in $projectsList)
 }
 
 
-if (($branchName -ne 'stable/liberty') -and ($branchName -ne 'stable/mitaka')) {
-    $novaConfig = $novaConfig.replace('network_api_class', '#network_api_class')
-}
-
 $cpu_array = ([array](gwmi -class Win32_Processor))
 $cores_count = $cpu_array.count * $cpu_array[0].NumberOfCores
 $novaConfig = (gc "$templateDir\nova.conf").replace('[DEVSTACK_IP]', "$devstackIP").Replace('[LOGDIR]', "$openstackLogs").Replace('[RABBITUSER]', $rabbitUser)
@@ -269,6 +265,10 @@ if (!$branchName.CompareTo('master')){
     $novaConfig = $novaConfig.replace('hyperv.nova.driver.HyperVDriver', 'compute_hyperv.driver.HyperVDriver')
 }
 $neutronConfig = (gc "$templateDir\neutron_hyperv_agent.conf").replace('[DEVSTACK_IP]', "$devstackIP").Replace('[LOGDIR]', "$openstackLogs").Replace('[RABBITUSER]', $rabbitUser).replace('[CORES_COUNT]', "$cores_count")
+
+if (($branchName -ne 'stable/liberty') -and ($branchName -ne 'stable/mitaka')) {
+    $novaConfig = $novaConfig.replace('network_api_class', '#network_api_class')
+}
 
 Set-Content $configDir\nova.conf $novaConfig
 if ($? -eq $false){
