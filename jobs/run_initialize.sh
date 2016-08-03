@@ -32,10 +32,14 @@ export NAME=$NAME
 
 echo NAME=$NAME | tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
 echo ZUUL_PROJECT=$ZUUL_PROJECT | tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
+echo ZUUL_REF=$ZUUL_REF | tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
+echo ZUUL_BRANCH=$ZUUL_BRANCH | tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
 echo ZUUL_CHANGE=$ZUUL_CHANGE | tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
 echo ZUUL_PATCHSET=$ZUUL_PATCHSET | tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
 echo ZUUL_UUID=$ZUUL_UUID | tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
 echo IS_DEBUG_JOB=$IS_DEBUG_JOB | tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
+echo hyperv01=$hyperv01| tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
+echo hyperv02=$hyperv02| tee -a /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
 
 NET_ID=$(nova net-list | grep private| awk '{print $2}')
 
