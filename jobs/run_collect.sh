@@ -2,7 +2,7 @@ source /home/jenkins-slave/runs/devstack_params.$ZUUL_UUID.txt
 source /home/jenkins-slave/tools/keystonerc_admin
 source /usr/local/src/oslo-ci/jobs/library.sh
 
-logs_project=oslo
+logs_project=`echo "$ZUUL_PROJECT" | cut -d/ -f2`
 
 set +e
 
