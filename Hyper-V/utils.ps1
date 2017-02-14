@@ -30,6 +30,54 @@ function ExecRetry($command, $maxRetryCount = 10, $retryInterval=2)
     $ErrorActionPreference = $currErrorActionPreference
 }
 
+function GitClonePull($path, $url, $branch="master")
+{
+    Write-Host "Calling GitClonePull with path=$path, url=$url, branch=$branch"
+    if (!(Test-Path -path $path))
+    {
+        ExecRetry {
+            git clone $url $path
+            if ($LastExitCode) { throw "git clone failed - GitClonePull - Path does not exist!" }
+        }
+        pushd $path
+        git checkout $branch
+        git pull
+        popd
+        if ($LastExitCode) { throw "git checkout failed - GitCLonePull - Path does not exist!" }
+    }else{
+        pushd $path
+        try
+        {
+            ExecRetry {
+                Remove-Item -Force -Recurse -ErrorAction SilentlyContinue "$path\*"
+                git clone $url $path
+                if ($LastExitCode) { throw "git clone failed - GitClonePull - After removing existing Path.." }
+            }
+            ExecRetry {
+                (git checkout $branch) -Or (git checkout master)
+                if ($LastExitCode) { throw "git checkout failed - GitClonePull - After removing existing Path.." }
+            }
+
+            Get-ChildItem . -Include *.pyc -Recurse | foreach ($_) {Remove-Item $_.fullname}
+
+            git reset --hard
+            if ($LastExitCode) { throw "git reset failed!" }
+
+            git clean -f -d
+            if ($LastExitCode) { throw "git clean failed!" }
+
+            ExecRetry {
+                git pull
+                if ($LastExitCode) { throw "git pull failed!" }
+            }
+        }
+        finally
+        {
+            popd
+        }
+    }
+}
+
 function dumpeventlog($path){
 
     foreach ($i in (get-winevent -ListLog * |  ? {$_.RecordCount -gt 0 })) {

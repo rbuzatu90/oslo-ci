@@ -74,7 +74,7 @@ Add-Content "$env:APPDATA\pip\pip.ini" $pip_conf_content
 $ErrorActionPreference = "Continue"
 
 & easy_install pip
-& pip install setuptools==26.0.0
+& pip install setuptools
 & pip install pymi
 & pip install tox
 & pip install nose
@@ -102,11 +102,23 @@ if ($hasPipConf -eq $false) {
 
 Add-Content "$env:APPDATA\pip\pip.ini" $pip_conf_content
 
-cp $templateDir\distutils.cfg "$pythonDir\Lib\distutils\distutils.cfg"
+ExecRetry {
+    GitClonePull "$buildDir\requirements" "https://git.openstack.org/openstack/requirements.git" $branchName
+}
+
+ExecRetry {
+    pushd "$buildDir\requirements"
+    Write-Host "Installing OpenStack/Requirements..."
+    & pip install -c upper-constraints.txt -U pbr virtualenv httplib2 prettytable>=0.7 setuptools
+    & pip install -c upper-constraints.txt -U .
+    if ($LastExitCode) { Throw "Failed to install openstack/requirements from repo" }
+    popd
+}
+
 
 ExecRetry {
     pushd $buildDir\$projectName
-
+    & update-requirements.exe --source $buildDir\requirements .
     & pip install -r $buildDir\$projectName\requirements.txt
     if ($LastExitCode) { Throw "Failed to install $projectNameInstall requirements" }
     & pip install -e $buildDir\$projectName
