@@ -33,6 +33,8 @@ trusted-host = 10.20.1.8
 
 if ($hasOpenstackLogs -eq $false){
    mkdir $openstackLogs
+} else {
+    Remove-Item -Recurse -Force "$openstackLogs\*"
 }
 
 if ($hasProject -eq $false){
@@ -65,7 +67,7 @@ if ($hasPipConf -eq $false){
 }
 else 
 {
-    Remove-Item -Force "$env:APPDATA\pip\*"
+    Remove-Item -Recurse -Force "$env:APPDATA\pip\*"
 }
 Add-Content "$env:APPDATA\pip\pip.ini" $pip_conf_content
 
@@ -88,7 +90,7 @@ $hasPipConf = Test-Path "$env:APPDATA\pip"
 if ($hasPipConf -eq $false) {
     mkdir "$env:APPDATA\pip"
 } else {
-    Remove-Item -Force "$env:APPDATA\pip\*"
+    Remove-Item -Force -Recurse "$env:APPDATA\pip\*"
 }
 
 Add-Content "$env:APPDATA\pip\pip.ini" $pip_conf_content
