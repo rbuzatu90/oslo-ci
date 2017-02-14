@@ -30,54 +30,6 @@ function ExecRetry($command, $maxRetryCount = 10, $retryInterval=2)
     $ErrorActionPreference = $currErrorActionPreference
 }
 
-function GitClonePull($path, $url, $branch="master")
-{
-    Write-Host "Calling GitClonePull with path=$path, url=$url, branch=$branch"
-    if (!(Test-Path -path $path))
-    {
-        ExecRetry {
-            git clone $url $path
-            if ($LastExitCode) { throw "git clone failed - GitClonePull - Path does not exist!" }
-        }
-        pushd $path
-        git checkout $branch
-        git pull
-        popd
-        if ($LastExitCode) { throw "git checkout failed - GitCLonePull - Path does not exist!" }
-    }else{
-        pushd $path
-        try
-        {
-            ExecRetry {
-                Remove-Item -Force -Recurse -ErrorAction SilentlyContinue "$path\*"
-                git clone $url $path
-                if ($LastExitCode) { throw "git clone failed - GitClonePull - After removing existing Path.." }
-            }
-            ExecRetry {
-                (git checkout $branch) -Or (git checkout master)
-                if ($LastExitCode) { throw "git checkout failed - GitClonePull - After removing existing Path.." }
-            }
-
-            Get-ChildItem . -Include *.pyc -Recurse | foreach ($_) {Remove-Item $_.fullname}
-
-            git reset --hard
-            if ($LastExitCode) { throw "git reset failed!" }
-
-            git clean -f -d
-            if ($LastExitCode) { throw "git clean failed!" }
-
-            ExecRetry {
-                git pull
-                if ($LastExitCode) { throw "git pull failed!" }
-            }
-        }
-        finally
-        {
-            popd
-        }
-    }
-}
-
 function dumpeventlog($path){
 
     foreach ($i in (get-winevent -ListLog * |  ? {$_.RecordCount -gt 0 })) {
@@ -121,13 +73,119 @@ function log_message($message){
     Write-Host "[$(Get-Date)] $message"
 }
 
-function destroy_planned_vms() {
-    $planned_vms = [array] (gwmi -ns root/virtualization/v2 -class Msvm_PlannedComputerSystem)
-    $svc = gwmi -ns root/virtualization/v2 -class Msvm_VirtualSystemManagementService
+function Test-FileIntegrity {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true, ValueFromPipeline=$true, Position=0)]
+        [string]$File,
+        [Parameter(Mandatory=$true)]
+        [string]$ExpectedHash,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("SHA1", "SHA256", "SHA384", "SHA512", "MACTripleDES", "MD5", "RIPEMD160")]
+        [string]$Algorithm="SHA1"
+    )
+    PROCESS {
+        $hash = (Get-FileHash -Path $File -Algorithm $Algorithm).Hash
+        if ($hash -ne $ExpectedHash) {
+            throw ("File integrity check failed for {0}. Expected {1}, got {2}" -f @($File, $ExpectedHash, $hash))
+        }
+        return $true
+    }
+}
 
-    $pvm_count = $planned_vms.Count
-    log_message "Found $pvm_count planned vms."
-    foreach($pvm in $planned_vms) {
-        $svc.DestroySystem($pvm)
+function Invoke-FastWebRequest {
+    <#
+    .SYNOPSIS
+    Invoke-FastWebRequest downloads a file from the web via HTTP. This function will work on all modern windows versions,
+    including Windows Server Nano. This function also allows file integrity checks using common hashing algorithms:
+
+    "SHA1", "SHA256", "SHA384", "SHA512", "MACTripleDES", "MD5", "RIPEMD160"
+
+    The hash of the file being downloaded should be specified in the Uri itself. See examples.
+    .PARAMETER Uri
+    The address from where to fetch the file
+    .PARAMETER OutFile
+    Destination file
+    .PARAMETER SkipIntegrityCheck
+    Skip file integrity check even if a valid hash is specified in the Uri.
+
+    .EXAMPLE
+
+    # Download file without file integrity check
+    Invoke-FastWebRequest -Uri http://example.com/archive.zip -OutFile (Join-Path $env:TMP archive.zip)
+
+    .EXAMPLE
+    # Download file with file integrity check
+    Invoke-FastWebRequest -Uri http://example.com/archive.zip#md5=43d89a2f6b8a8918ce3eb76227685276 `
+                          -OutFile (Join-Path $env:TMP archive.zip)
+
+    .EXAMPLE
+    # Force skip file integrity check
+    Invoke-FastWebRequest -Uri http://example.com/archive.zip#md5=43d89a2f6b8a8918ce3eb76227685276 `
+                          -OutFile (Join-Path $env:TMP archive.zip) -SkipIntegrityCheck:$true
+    #>
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$True,ValueFromPipeline=$true,Position=0)]
+        [System.Uri]$Uri,
+        [Parameter(Position=1)]
+        [string]$OutFile,
+        [switch]$SkipIntegrityCheck=$false
+    )
+    PROCESS
+    {
+        if(!([System.Management.Automation.PSTypeName]'System.Net.Http.HttpClient').Type)
+        {
+            $assembly = [System.Reflection.Assembly]::LoadWithPartialName("System.Net.Http")
+        }
+
+        if(!$OutFile) {
+            $OutFile = $Uri.PathAndQuery.Substring($Uri.PathAndQuery.LastIndexOf("/") + 1)
+            if(!$OutFile) {
+                throw "The ""OutFile"" parameter needs to be specified"
+            }
+        }
+
+        $fragment = $Uri.Fragment.Trim('#')
+        if ($fragment) {
+            $details = $fragment.Split("=")
+            $algorithm = $details[0]
+            $hash = $details[1]
+        }
+
+        if (!$SkipIntegrityCheck -and $fragment -and (Test-Path $OutFile)) {
+            try {
+                return (Test-FileIntegrity -File $OutFile -Algorithm $algorithm -ExpectedHash $hash)
+            } catch {
+                Remove-Item $OutFile
+            }
+        }
+
+        $client = new-object System.Net.Http.HttpClient
+        $task = $client.GetStreamAsync($Uri)
+        $response = $task.Result
+        if($task.IsFaulted) {
+            $msg = "Request for URL '{0}' is faulted.`nTask status: {1}.`n" -f @($Uri, $task.Status)
+            if($task.Exception) {
+                $msg += "Exception details: {0}" -f @($task.Exception)
+            }
+            Throw $msg
+        }
+        $outStream = New-Object IO.FileStream $OutFile, Create, Write, None
+
+        try {
+            $totRead = 0
+            $buffer = New-Object Byte[] 1MB
+            while (($read = $response.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                $totRead += $read
+                $outStream.Write($buffer, 0, $read);
+            }
+        }
+        finally {
+            $outStream.Close()
+        }
+        if(!$SkipIntegrityCheck -and $fragment) {
+            Test-FileIntegrity -File $OutFile -Algorithm $algorithm -ExpectedHash $hash
+        }
     }
 }

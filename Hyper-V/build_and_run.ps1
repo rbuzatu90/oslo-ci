@@ -49,7 +49,7 @@ if (Test-Path $pythonArchive) {
     Remove-Item -Force $pythonArchive
 }
 
-Invoke-WebRequest -Uri http://10.20.1.14:8080/python.zip -OutFile $pythonArchive
+Invoke-FastWebRequest -Uri http://10.20.1.14:8080/python.zip -OutFile $pythonArchive
 if (Test-Path $pythonDir)
 {
     Cmd /C "rmdir /S /Q $pythonDir"
