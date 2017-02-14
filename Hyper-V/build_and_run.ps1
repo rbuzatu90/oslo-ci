@@ -73,7 +73,7 @@ Add-Content "$env:APPDATA\pip\pip.ini" $pip_conf_content
 
 $ErrorActionPreference = "Continue"
 
-& pip install -U pip==8.1.2
+& easy_install pip==8.1.2
 & pip install setuptools==26.0.0
 & pip install pymi
 & pip install tox
@@ -83,6 +83,11 @@ $ErrorActionPreference = "Continue"
 & pip install python-memcached
 & pip install fixtures
 & pip install mock
+& pip install testresources
+& pip install testscenarios
+
+& pip install oslotest
+
 
 $ErrorActionPreference = "Stop"
 
@@ -117,7 +122,7 @@ if (Test-Path "$buildDir\$projectName\test-requirements.txt")
 }
 
 $currDate = (Get-Date).ToString()
-Write-Host "$currDate running unit tests."
+Write-Host "$currDate Running unit tests."
 
 Try {
     pushd $buildDir\$projectName
@@ -139,4 +144,5 @@ While (! $proc.HasExited)
     }
 
 }
-Write-Host "Finished running unit tests."
+$currDate = (Get-Date).ToString()
+Write-Host "$currDate Finished running unit tests."
