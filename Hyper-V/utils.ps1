@@ -83,13 +83,11 @@ function Test-FileIntegrity {
         [ValidateSet("SHA1", "SHA256", "SHA384", "SHA512", "MACTripleDES", "MD5", "RIPEMD160")]
         [string]$Algorithm="SHA1"
     )
-    {
-        $hash = (Get-FileHash -Path $File -Algorithm $Algorithm).Hash
-        if ($hash -ne $ExpectedHash) {
-            throw ("File integrity check failed for {0}. Expected {1}, got {2}" -f @($File, $ExpectedHash, $hash))
-        }
-        return $true
+    $hash = (Get-FileHash -Path $File -Algorithm $Algorithm).Hash
+    if ($hash -ne $ExpectedHash) {
+        throw ("File integrity check failed for {0}. Expected {1}, got {2}" -f @($File, $ExpectedHash, $hash))
     }
+    return $true
 }
 
 function Invoke-FastWebRequest {
@@ -130,59 +128,57 @@ function Invoke-FastWebRequest {
         [string]$OutFile,
         [switch]$SkipIntegrityCheck=$false
     )
+    if(!([System.Management.Automation.PSTypeName]'System.Net.Http.HttpClient').Type)
     {
-        if(!([System.Management.Automation.PSTypeName]'System.Net.Http.HttpClient').Type)
-        {
-            $assembly = [System.Reflection.Assembly]::LoadWithPartialName("System.Net.Http")
-        }
+        $assembly = [System.Reflection.Assembly]::LoadWithPartialName("System.Net.Http")
+    }
 
+    if(!$OutFile) {
+        $OutFile = $Uri.PathAndQuery.Substring($Uri.PathAndQuery.LastIndexOf("/") + 1)
         if(!$OutFile) {
-            $OutFile = $Uri.PathAndQuery.Substring($Uri.PathAndQuery.LastIndexOf("/") + 1)
-            if(!$OutFile) {
-                throw "The ""OutFile"" parameter needs to be specified"
-            }
+            throw "The ""OutFile"" parameter needs to be specified"
         }
+    }
 
-        $fragment = $Uri.Fragment.Trim('#')
-        if ($fragment) {
-            $details = $fragment.Split("=")
-            $algorithm = $details[0]
-            $hash = $details[1]
-        }
+    $fragment = $Uri.Fragment.Trim('#')
+    if ($fragment) {
+        $details = $fragment.Split("=")
+        $algorithm = $details[0]
+        $hash = $details[1]
+    }
 
-        if (!$SkipIntegrityCheck -and $fragment -and (Test-Path $OutFile)) {
-            try {
-                return (Test-FileIntegrity -File $OutFile -Algorithm $algorithm -ExpectedHash $hash)
-            } catch {
-                Remove-Item $OutFile
-            }
-        }
-
-        $client = new-object System.Net.Http.HttpClient
-        $task = $client.GetStreamAsync($Uri)
-        $response = $task.Result
-        if($task.IsFaulted) {
-            $msg = "Request for URL '{0}' is faulted.`nTask status: {1}.`n" -f @($Uri, $task.Status)
-            if($task.Exception) {
-                $msg += "Exception details: {0}" -f @($task.Exception)
-            }
-            Throw $msg
-        }
-        $outStream = New-Object IO.FileStream $OutFile, Create, Write, None
-
+    if (!$SkipIntegrityCheck -and $fragment -and (Test-Path $OutFile)) {
         try {
-            $totRead = 0
-            $buffer = New-Object Byte[] 1MB
-            while (($read = $response.Read($buffer, 0, $buffer.Length)) -gt 0) {
-                $totRead += $read
-                $outStream.Write($buffer, 0, $read);
-            }
+            return (Test-FileIntegrity -File $OutFile -Algorithm $algorithm -ExpectedHash $hash)
+        } catch {
+            Remove-Item $OutFile
         }
-        finally {
-            $outStream.Close()
+    }
+
+    $client = new-object System.Net.Http.HttpClient
+    $task = $client.GetStreamAsync($Uri)
+    $response = $task.Result
+    if($task.IsFaulted) {
+        $msg = "Request for URL '{0}' is faulted.`nTask status: {1}.`n" -f @($Uri, $task.Status)
+        if($task.Exception) {
+            $msg += "Exception details: {0}" -f @($task.Exception)
         }
-        if(!$SkipIntegrityCheck -and $fragment) {
-            Test-FileIntegrity -File $OutFile -Algorithm $algorithm -ExpectedHash $hash
+        Throw $msg
+    }
+    $outStream = New-Object IO.FileStream $OutFile, Create, Write, None
+
+    try {
+        $totRead = 0
+        $buffer = New-Object Byte[] 1MB
+        while (($read = $response.Read($buffer, 0, $buffer.Length)) -gt 0) {
+            $totRead += $read
+            $outStream.Write($buffer, 0, $read);
         }
+    }
+    finally {
+        $outStream.Close()
+    }
+    if(!$SkipIntegrityCheck -and $fragment) {
+        Test-FileIntegrity -File $OutFile -Algorithm $algorithm -ExpectedHash $hash
     }
 }
