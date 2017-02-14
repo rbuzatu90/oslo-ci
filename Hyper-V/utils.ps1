@@ -125,7 +125,7 @@ function Invoke-FastWebRequest {
         [Parameter(Mandatory=$True,ValueFromPipeline=$true,Position=0)]
         [System.Uri]$Uri,
         [Parameter(Position=1)]
-        [string]$OutFile,
+        [string]$OutFile
     )
     if(!([System.Management.Automation.PSTypeName]'System.Net.Http.HttpClient').Type)
     {
