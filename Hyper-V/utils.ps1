@@ -126,7 +126,6 @@ function Invoke-FastWebRequest {
         [System.Uri]$Uri,
         [Parameter(Position=1)]
         [string]$OutFile,
-        [switch]$SkipIntegrityCheck=$false
     )
     if(!([System.Management.Automation.PSTypeName]'System.Net.Http.HttpClient').Type)
     {
@@ -137,21 +136,6 @@ function Invoke-FastWebRequest {
         $OutFile = $Uri.PathAndQuery.Substring($Uri.PathAndQuery.LastIndexOf("/") + 1)
         if(!$OutFile) {
             throw "The ""OutFile"" parameter needs to be specified"
-        }
-    }
-
-    $fragment = $Uri.Fragment.Trim('#')
-    if ($fragment) {
-        $details = $fragment.Split("=")
-        $algorithm = $details[0]
-        $hash = $details[1]
-    }
-
-    if (!$SkipIntegrityCheck -and $fragment -and (Test-Path $OutFile)) {
-        try {
-            return (Test-FileIntegrity -File $OutFile -Algorithm $algorithm -ExpectedHash $hash)
-        } catch {
-            Remove-Item $OutFile
         }
     }
 
@@ -177,8 +161,5 @@ function Invoke-FastWebRequest {
     }
     finally {
         $outStream.Close()
-    }
-    if(!$SkipIntegrityCheck -and $fragment) {
-        Test-FileIntegrity -File $OutFile -Algorithm $algorithm -ExpectedHash $hash
     }
 }
