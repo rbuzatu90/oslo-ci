@@ -74,7 +74,6 @@ function log_message($message){
 }
 
 function Test-FileIntegrity {
-    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true, ValueFromPipeline=$true, Position=0)]
         [string]$File,
@@ -84,7 +83,7 @@ function Test-FileIntegrity {
         [ValidateSet("SHA1", "SHA256", "SHA384", "SHA512", "MACTripleDES", "MD5", "RIPEMD160")]
         [string]$Algorithm="SHA1"
     )
-    PROCESS {
+    {
         $hash = (Get-FileHash -Path $File -Algorithm $Algorithm).Hash
         if ($hash -ne $ExpectedHash) {
             throw ("File integrity check failed for {0}. Expected {1}, got {2}" -f @($File, $ExpectedHash, $hash))
@@ -124,7 +123,6 @@ function Invoke-FastWebRequest {
     Invoke-FastWebRequest -Uri http://example.com/archive.zip#md5=43d89a2f6b8a8918ce3eb76227685276 `
                           -OutFile (Join-Path $env:TMP archive.zip) -SkipIntegrityCheck:$true
     #>
-    [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$True,ValueFromPipeline=$true,Position=0)]
         [System.Uri]$Uri,
@@ -132,7 +130,6 @@ function Invoke-FastWebRequest {
         [string]$OutFile,
         [switch]$SkipIntegrityCheck=$false
     )
-    PROCESS
     {
         if(!([System.Management.Automation.PSTypeName]'System.Net.Http.HttpClient').Type)
         {
