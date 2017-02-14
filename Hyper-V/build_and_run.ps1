@@ -107,9 +107,12 @@ ExecRetry {
     popd
 }
 
-$ErrorActionPreference = "Continue"
-& pip install -r $buildDir\$projectName\test-requirements.txt
-$ErrorActionPreference = "Stop"
+if (Test-Path "$buildDir\$projectName\test-requirements.txt")
+{
+    $ErrorActionPreference = "Continue"
+    & pip install -r $buildDir\$projectName\test-requirements.txt
+    $ErrorActionPreference = "Stop"
+}
 
 $currDate = (Get-Date).ToString()
 Write-Host "$currDate running unit tests."
@@ -121,8 +124,17 @@ Try {
     Throw "Could not start the unit tests process."
 }
 
-Start-Sleep -s 300
-if (! $proc.HasExited) {
-    Stop-Process -Id $proc.Id -Force
-    Throw "Unit tests exceeded time linit of 300 seconds."
+
+$count = 0;
+
+While (! $proc.HasExited)
+{
+    Start-Sleep 10;
+    $count++
+    if ($count -gt 30) {
+        Stop-Process -Id $proc.Id -Force
+        Throw "Unit tests exceeded time linit of 300 seconds."
+    }
+
 }
+Write-Host "Finished running unit tests."

@@ -73,55 +73,8 @@ function log_message($message){
     Write-Host "[$(Get-Date)] $message"
 }
 
-function Test-FileIntegrity {
-    Param(
-        [Parameter(Mandatory=$true, ValueFromPipeline=$true, Position=0)]
-        [string]$File,
-        [Parameter(Mandatory=$true)]
-        [string]$ExpectedHash,
-        [Parameter(Mandatory=$false)]
-        [ValidateSet("SHA1", "SHA256", "SHA384", "SHA512", "MACTripleDES", "MD5", "RIPEMD160")]
-        [string]$Algorithm="SHA1"
-    )
-    $hash = (Get-FileHash -Path $File -Algorithm $Algorithm).Hash
-    if ($hash -ne $ExpectedHash) {
-        throw ("File integrity check failed for {0}. Expected {1}, got {2}" -f @($File, $ExpectedHash, $hash))
-    }
-    return $true
-}
-
 function Invoke-FastWebRequest {
-    <#
-    .SYNOPSIS
-    Invoke-FastWebRequest downloads a file from the web via HTTP. This function will work on all modern windows versions,
-    including Windows Server Nano. This function also allows file integrity checks using common hashing algorithms:
-
-    "SHA1", "SHA256", "SHA384", "SHA512", "MACTripleDES", "MD5", "RIPEMD160"
-
-    The hash of the file being downloaded should be specified in the Uri itself. See examples.
-    .PARAMETER Uri
-    The address from where to fetch the file
-    .PARAMETER OutFile
-    Destination file
-    .PARAMETER SkipIntegrityCheck
-    Skip file integrity check even if a valid hash is specified in the Uri.
-
-    .EXAMPLE
-
-    # Download file without file integrity check
-    Invoke-FastWebRequest -Uri http://example.com/archive.zip -OutFile (Join-Path $env:TMP archive.zip)
-
-    .EXAMPLE
-    # Download file with file integrity check
-    Invoke-FastWebRequest -Uri http://example.com/archive.zip#md5=43d89a2f6b8a8918ce3eb76227685276 `
-                          -OutFile (Join-Path $env:TMP archive.zip)
-
-    .EXAMPLE
-    # Force skip file integrity check
-    Invoke-FastWebRequest -Uri http://example.com/archive.zip#md5=43d89a2f6b8a8918ce3eb76227685276 `
-                          -OutFile (Join-Path $env:TMP archive.zip) -SkipIntegrityCheck:$true
-    #>
-    Param(
+   Param(
         [Parameter(Mandatory=$True,ValueFromPipeline=$true,Position=0)]
         [System.Uri]$Uri,
         [Parameter(Position=1)]
