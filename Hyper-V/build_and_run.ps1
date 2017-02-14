@@ -73,6 +73,11 @@ $ErrorActionPreference = "Continue"
 & easy_install -U pip
 & pip install setuptools==26.0.0
 & pip install pymi
+& pip install tox
+& pip install nose
+
+& pip install pymongo
+& pip install python-memcached
 
 $ErrorActionPreference = "Stop"
 
@@ -91,9 +96,12 @@ cp $templateDir\distutils.cfg "$pythonDir\Lib\distutils\distutils.cfg"
 
 ExecRetry {
     pushd $buildDir\$projectName
-    & pip install -r $buildDir\$projectName\test-requirements.txt
+    & pip install -r $buildDir\$projectName\requirements.txt
+    if ($LastExitCode) { Throw "Failed to install $projectNameInstall requirements" }
     & pip install -e $buildDir\$projectName
     if ($LastExitCode) { Throw "Failed to install $projectNameInstall from repo" }
+    & pip install -r $buildDir\$projectName\test-requirements.txt
+    if ($LastExitCode) { Throw "Failed to install $projectNameInstall test-requirements" }
     popd
 }
 
@@ -113,8 +121,8 @@ Write-Host "$currDate running unit tests."
 #     Throw "Unit tests exceeded time linit of 300 seconds."
 # }
 
+pushd $buildDir\$projectName
+
 & "$pythonDir\python.exe -m unittest discover"
 
 popd
-
-}
