@@ -20,6 +20,7 @@ $scriptLocation = [System.IO.Path]::GetDirectoryName($myInvocation.MyCommand.Def
 . "$scriptLocation\utils.ps1"
 
 $hasProject = Test-Path $buildDir\$projectName
+$hasopenstackLogs = Test-Path $openstackLogs
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
@@ -30,8 +31,8 @@ index-url = http://10.20.1.8:8080/cloudbase/CI/+simple/
 trusted-host = 10.20.1.8
 "@
 
-if ($hasBuildDir -eq $false){
-   mkdir $buildDir
+if ($hasOpenstackLogs -eq $false){
+   mkdir $openstackLogs
 }
 
 if ($hasProject -eq $false){
@@ -96,33 +97,30 @@ cp $templateDir\distutils.cfg "$pythonDir\Lib\distutils\distutils.cfg"
 
 ExecRetry {
     pushd $buildDir\$projectName
+
     & pip install -r $buildDir\$projectName\requirements.txt
     if ($LastExitCode) { Throw "Failed to install $projectNameInstall requirements" }
     & pip install -e $buildDir\$projectName
     if ($LastExitCode) { Throw "Failed to install $projectNameInstall from repo" }
-    & pip install -r $buildDir\$projectName\test-requirements.txt
-    if ($LastExitCode) { Throw "Failed to install $projectNameInstall test-requirements" }
     popd
 }
+
+$ErrorActionPreference = "Continue"
+& pip install -r $buildDir\$projectName\test-requirements.txt
+$ErrorActionPreference = "Stop"
 
 $currDate = (Get-Date).ToString()
 Write-Host "$currDate running unit tests."
 
-# Try {
-#     pushd $buildDir\$projectName
-#     $proc = Start-Process -PassThru -RedirectStandardError "$openstackLogs\process_error.txt" -RedirectStandardOutput "$openstackLogs\process_output.txt" -FilePath "$pythonDir\python.exe" -ArgumentList "-m unittest discover"
-# } Catch {
-#     Throw "Could not start the process manually."
-# }
+Try {
+    pushd $buildDir\$projectName
+    $proc = Start-Process -PassThru -RedirectStandardError "$openstackLogs\unittests_error.txt" -RedirectStandardOutput "$openstackLogs\unittests_output.txt" -FilePath "$pythonDir\python.exe" -ArgumentList "-m unittest discover"
+} Catch {
+    Throw "Could not start the unit tests process."
+}
 
-# Start-Sleep -s 300
-# if (! $proc.HasExited) {
-#     Stop-Process -Id $proc.Id -Force
-#     Throw "Unit tests exceeded time linit of 300 seconds."
-# }
-
-pushd $buildDir\$projectName
-
-& "$pythonDir\python.exe -m unittest discover"
-
-popd
+Start-Sleep -s 300
+if (! $proc.HasExited) {
+    Stop-Process -Id $proc.Id -Force
+    Throw "Unit tests exceeded time linit of 300 seconds."
+}
