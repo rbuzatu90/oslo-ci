@@ -32,7 +32,7 @@ function ExecRetry($command, $maxRetryCount = 10, $retryInterval=2)
 
 function GitClonePull($path, $url, $branch="master")
 {
-    Write-Host "Calling GitClonePull with path=$path, url=$url, branch=$branch"
+    Write-Output "Calling GitClonePull with path=$path, url=$url, branch=$branch"
     if (!(Test-Path -path $path))
     {
         ExecRetry {
@@ -83,7 +83,7 @@ function dumpeventlog($path){
     foreach ($i in (get-winevent -ListLog * |  ? {$_.RecordCount -gt 0 })) {
         $logName = "eventlog_" + $i.LogName + ".evtx"
         $logName = $logName.replace(" ","-").replace("/", "-").replace("\", "-")
-        Write-Host "exporting "$i.LogName" as "$logName
+        Write-Output "exporting "$i.LogName" as "$logName
         $bkup = Join-Path $path $logName
         wevtutil epl $i.LogName $bkup
     }
@@ -102,7 +102,7 @@ function exporthtmleventlog($path){
         $Report = (get-winevent -LogName $i.LogName)
         $logName = "eventlog_" + $i.LogName + ".html"
         $logName = $logName.replace(" ","-").replace("/", "-").replace("\", "-")
-        Write-Host "exporting "$i.LogName" as "$logName
+        Write-Output "exporting "$i.LogName" as "$logName
         $Report = $Report | ConvertTo-Html -Title "${i}" -Head $HTMLHeader -As Table
         $Report = $Report | ForEach-Object {$_ -replace "<body>", '<body id="body">'}
         $Report = $Report | ForEach-Object {$_ -replace "<table>", '<table class="sortable" id="table" cellspacing="0">'}
@@ -118,7 +118,7 @@ function cleareventlog(){
 }
 
 function log_message($message){
-    Write-Host "[$(Get-Date)] $message"
+    Write-Output "[$(Get-Date)] $message"
 }
 
 function Invoke-FastWebRequest {

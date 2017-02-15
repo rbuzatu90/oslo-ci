@@ -51,8 +51,8 @@ if (Test-Path $pythonDir)
     Cmd /C "rmdir /S /Q $pythonDir"
     #Remove-Item -Recurse -Force $pythonDir
 }
-Write-Host "Ensure Python folder is up to date"
-Write-Host "Extracting archive.."
+Write-Output "Ensure Python folder is up to date"
+Write-Output "Extracting archive.."
 [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\$pythonArchive", "C:\")
 
 popd
@@ -93,7 +93,7 @@ ExecRetry {
 
 ExecRetry {
     pushd "$buildDir\requirements"
-    Write-Host "Installing OpenStack/Requirements..."
+    Write-Output "Installing OpenStack/Requirements..."
     & pip install -c upper-constraints.txt -U pbr virtualenv httplib2 prettytable>=0.7 setuptools
     & pip install -c upper-constraints.txt -U .
     if ($LastExitCode) { Throw "Failed to install openstack/requirements from repo" }
@@ -119,7 +119,7 @@ if (Test-Path "$buildDir\$projectName\test-requirements.txt")
 }
 
 $currDate = (Get-Date).ToString()
-Write-Host "$currDate Running unit tests."
+Write-Output "$currDate Running unit tests."
 
 Try {
     $proc = Start-Job -Name "UnitTests" -ScriptBlock { cd $buildDir\$projectName; & python -m unittest discover 2>&1; Write-Output "Exit code: $LASTEXITCODE" }
@@ -143,10 +143,10 @@ Add-Content $openstackLogs\unittest__output.txt $result
 $exitcode = $result[-1][-1]
 
 $currDate = (Get-Date).ToString()
-Write-Host "$currDate Finished running unit tests."
+Write-Output "$currDate Finished running unit tests."
 if ($exitcode.ToString() -ne "0")
 {
     Throw "Unit tests result exit code: $exitcode"
 } else {
-    Write-Host "Unit tests result exit code: $exitcode"
+    Write-Output "Unit tests result exit code: $exitcode"
 }
