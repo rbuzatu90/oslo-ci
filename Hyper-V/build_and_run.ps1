@@ -136,10 +136,15 @@ if (Test-Path "$buildDir\$projectName\test-requirements.txt")
 $currDate = (Get-Date).ToString()
 Write-Host "$currDate Running unit tests."
 
+$std_out = New-TemporaryFile
+$std_err = New-TemporaryFile
+
 Try {
     pushd $buildDir\$projectName
-    $proc = Start-Process -PassThru -RedirectStandardError "$openstackLogs\unittests_error.txt" -RedirectStandardOutput "$openstackLogs\unittests_output.txt" -FilePath "$pythonDir\python.exe" -ArgumentList "-m unittest discover"
+    $proc = Start-Process -PassThru -RedirectStandardError "$std_err" -RedirectStandardOutput "$std_out" -FilePath "$pythonDir\python.exe" -ArgumentList "-m unittest discover"
 } Catch {
+    Get-Content $std_out | Add-Content $openstackLogs\unittests_output.txt
+    Get-Content $std_err | Add-Content $openstackLogs\unittests_output.txt
     Throw "Could not start the unit tests process."
 }
 
@@ -148,13 +153,19 @@ $count = 0;
 
 While (! $proc.HasExited)
 {
-    Start-Sleep 10;
+    Start-Sleep 5;
     $count++
-    if ($count -gt 30) {
+    if ($count -gt 60) {
         Stop-Process -Id $proc.Id -Force
+        Get-Content $std_out | Add-Content $openstackLogs\unittests_output.txt
+        Get-Content $std_err | Add-Content $openstackLogs\unittests_output.txt
         Throw "Unit tests exceeded time linit of 300 seconds."
     }
-
 }
+
+Get-Content $std_out | Add-Content $openstackLogs\unittests_output.txt
+Get-Content $std_err | Add-Content $openstackLogs\unittests_output.txt
+
 $currDate = (Get-Date).ToString()
 Write-Host "$currDate Finished running unit tests."
+Write-Host "Unit tests finished with exit code $proc.ExitCode"
