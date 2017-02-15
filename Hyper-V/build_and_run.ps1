@@ -1,17 +1,10 @@
 Param(
     [string]$branchName='master',
     [string]$buildFor='',
-    [string]$isDebug='no',
     [string]$zuulChange=''
 )
 
 $ErrorActionPreference = "Stop"
-
-if ($isDebug -eq  'yes') {
-    Write-Host "Debug info:"
-    Write-Host "branchName: $branchName"
-    Write-Host "buildFor: $buildFor"
-}
 
 $projectName = $buildFor.split('/')[-1]
 
@@ -22,6 +15,12 @@ $scriptLocation = [System.IO.Path]::GetDirectoryName($myInvocation.MyCommand.Def
 $hasProject = Test-Path $buildDir\$projectName
 $hasopenstackLogs = Test-Path $openstackLogs
 
+if ($hasOpenstackLogs -eq $false){
+   mkdir $openstackLogs
+} else {
+    Remove-Item -Recurse -Force "$openstackLogs\*"
+}
+
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $pip_conf_content = @"
@@ -30,12 +29,6 @@ index-url = http://10.20.1.8:8080/cloudbase/CI/+simple/
 [install]
 trusted-host = 10.20.1.8
 "@
-
-if ($hasOpenstackLogs -eq $false){
-   mkdir $openstackLogs
-} else {
-    Remove-Item -Recurse -Force "$openstackLogs\*"
-}
 
 if ($hasProject -eq $false){
     Get-ChildItem $buildDir
@@ -47,8 +40,9 @@ git config --global user.email "hyper-v_ci@microsoft.com"
 git config --global user.name "Hyper-V CI"
 
 pushd C:\
+
 if (Test-Path $pythonArchive) {
-    Remove-Item -Force $pythonArchive
+   Remove-Item -Force $pythonArchive
 }
 
 Invoke-FastWebRequest -Uri http://10.20.1.14:8080/python.zip -OutFile "C:\$pythonArchive"
@@ -60,6 +54,8 @@ if (Test-Path $pythonDir)
 Write-Host "Ensure Python folder is up to date"
 Write-Host "Extracting archive.."
 [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\$pythonArchive", "C:\")
+
+popd
 
 $hasPipConf = Test-Path "$env:APPDATA\pip"
 if ($hasPipConf -eq $false){
@@ -90,17 +86,6 @@ $ErrorActionPreference = "Continue"
 
 
 $ErrorActionPreference = "Stop"
-
-popd
-
-$hasPipConf = Test-Path "$env:APPDATA\pip"
-if ($hasPipConf -eq $false) {
-    mkdir "$env:APPDATA\pip"
-} else {
-    Remove-Item -Force -Recurse "$env:APPDATA\pip\*"
-}
-
-Add-Content "$env:APPDATA\pip\pip.ini" $pip_conf_content
 
 ExecRetry {
     GitClonePull "$buildDir\requirements" "https://git.openstack.org/openstack/requirements.git" $branchName
@@ -136,36 +121,32 @@ if (Test-Path "$buildDir\$projectName\test-requirements.txt")
 $currDate = (Get-Date).ToString()
 Write-Host "$currDate Running unit tests."
 
-$std_out = New-TemporaryFile
-$std_err = New-TemporaryFile
-
 Try {
-    pushd $buildDir\$projectName
-    $proc = Start-Process -PassThru -RedirectStandardError "$std_err" -RedirectStandardOutput "$std_out" -FilePath "$pythonDir\python.exe" -ArgumentList "-m unittest discover"
+    $proc = Start-Job -Name "UnitTests" -ScriptBlock { cd $buildDir\$projectName; & python -m unittest discover 2>&1; Write-Output "Exit code: $LASTEXITCODE" }
 } Catch {
-    Get-Content $std_out | Add-Content $openstackLogs\unittests_output.txt
-    Get-Content $std_err | Add-Content $openstackLogs\unittests_output.txt
-    Throw "Could not start the unit tests process."
+    Throw "Could not start the unit tests job."
 }
 
+Wait-Job -Timeout 300 -Id $proc.Id
 
-$count = 0;
-
-While (! $proc.HasExited)
+if ($proc.State -eq "Running")
 {
-    Start-Sleep 5;
-    $count++
-    if ($count -gt 60) {
-        Stop-Process -Id $proc.Id -Force
-        Get-Content $std_out | Add-Content $openstackLogs\unittests_output.txt
-        Get-Content $std_err | Add-Content $openstackLogs\unittests_output.txt
-        Throw "Unit tests exceeded time linit of 300 seconds."
-    }
+   Stop-Job -PassThru -Id $proc.Id | Remove-job
+   Throw "Unit tests exceeded time linit of 300 seconds."
 }
 
-Get-Content $std_out | Add-Content $openstackLogs\unittests_output.txt
-Get-Content $std_err | Add-Content $openstackLogs\unittests_output.txt
+$result = Receive-Job -Id $proc.Id -ErrorAction Continue
+Remove-Job -Id $proc.Id
+
+Add-Content $openstackLogs\unittest__output.txt $result
+
+$exitcode = $result[-1][-1]
 
 $currDate = (Get-Date).ToString()
 Write-Host "$currDate Finished running unit tests."
-Write-Host "Unit tests finished with exit code $proc.ExitCode"
+if ($exitcode -ne 0)
+{
+    Throw "Unit tests result exit code: $exitcode"
+} else {
+    Write-Host "Unit tests result exit code: $exitcode"
+}
