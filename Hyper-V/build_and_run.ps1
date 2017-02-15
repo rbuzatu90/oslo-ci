@@ -144,7 +144,7 @@ $exitcode = $result[-1][-1]
 
 $currDate = (Get-Date).ToString()
 Write-Host "$currDate Finished running unit tests."
-if ($exitcode -ne 0)
+if ($exitcode.ToString() -ne "0")
 {
     Throw "Unit tests result exit code: $exitcode"
 } else {
