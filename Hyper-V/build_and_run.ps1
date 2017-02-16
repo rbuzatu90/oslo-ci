@@ -126,7 +126,7 @@ Try {
     Throw "Could not start the unit tests job."
 }
 
-Wait-Job -Timeout 300 -Id $proc.Id
+Wait-Job -Timeout $unitTestTimeout -Id $proc.Id
 
 if ($proc.State -eq "Running")
 {

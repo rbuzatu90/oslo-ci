@@ -12,3 +12,4 @@ $pythonScripts = "$pythonDir\Scripts"
 $pythonArchive = "python.zip"
 $pythonExec = "$pythonDir\python.exe"
 $openstackLogs="$openstackDir\Logs"
+$unitTestTimeout=300
