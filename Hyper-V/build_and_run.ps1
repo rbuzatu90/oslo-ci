@@ -122,7 +122,7 @@ $currDate = (Get-Date).ToString()
 Write-Output "$currDate Running unit tests."
 
 Try {
-    $proc = Start-Job -Name "UnitTests" -ScriptBlock { cd $buildDir\$projectName; & python -m unittest discover 2>&1; Write-Output "Exit code: $LASTEXITCODE" }
+   $proc = Start-Job -Name "UnitTests" -Init ([ScriptBlock]::Create("Set-Location $buildDir\$projectName")) -ScriptBlock { pwd; cmd /c "python -m unittest discover 2>&1"; Write-Output "Exit code: $LASTEXITCODE" }
 } Catch {
     Throw "Could not start the unit tests job."
 }
@@ -138,7 +138,7 @@ if ($proc.State -eq "Running")
 $result = Receive-Job -Id $proc.Id -ErrorAction Continue
 Remove-Job -Id $proc.Id
 
-Add-Content $openstackLogs\unittest__output.txt $result
+Add-Content $openstackLogs\unittest_output.txt $result
 
 $exitcode = $result[-1][-1]
 
