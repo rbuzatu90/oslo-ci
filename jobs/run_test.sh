@@ -49,17 +49,18 @@ function run_wsman_ps() {
 
 windows_logs_folder='C:\OpenStack\Logs'
 PROJECT_NAME=$(basename $ZUUL_PROJECT)
+ZUUL_SITE=`echo "$ZUUL_URL" |sed 's/.\{2\}$//'`
 if [ -z "$PROJECT_NAME" ]; then echo "Could not get project name. ZUUL_PROJECT is $ZUUL_PROJECT and PROJECT_NAME is $PROJECT_NAME"; exit 1; fi
 
 run_wsman_ps $hyperv $WIN_USER $WIN_PASS 'Remove-Item -Recurse -Force C:\OpenStack\oslo-ci ; git clone https://github.com/cloudbase/oslo-ci C:\OpenStack\oslo-ci ; cd C:\OpenStack\oslo-ci ; git checkout cambridge-2016 2>&1' | tee create-environment.log
 
 set +e
 run_wsman_cmd $hyperv $WIN_USER $WIN_PASS '"bash C:\OpenStack\oslo-ci\Hyper-V\gerrit-git-prep.sh --zuul-site '$ZUUL_SITE' --gerrit-site '$ZUUL_SITE' --zuul-ref '$ZUUL_REF' --zuul-change '$ZUUL_CHANGE' --zuul-project '$ZUUL_PROJECT' 2>&1"' | tee -a create-environment.log
-run_wsman_ps $hyperv $WIN_USER $WIN_PASS '"C:\OpenStack\oslo-ci\Hyper-V\scripts\build_and_run.ps1 -branchName '$ZUUL_BRANCH' -buildFor '$ZUUL_PROJECT' 2>&1"' | tee -a create-environment.log
+run_wsman_ps $hyperv $WIN_USER $WIN_PASS '"C:\OpenStack\oslo-ci\Hyper-V\build_and_run.ps1 -branchName '$ZUUL_BRANCH' -buildFor '$ZUUL_PROJECT' 2>&1"' | tee -a create-environment.log
 result_run=$?
 
 run_wsman_ps $hyperv $WIN_USER $WIN_PASS "Get-Content $windows_logs_folder\unittest_output.txt" | tee unittest_output.log
-run_wsman_ps $hyperv $WIN_USER $WIN_PASS "C:\OpenStack\oslo-ci\Hyper-V\scripts\cleanup.ps1" | tee -a create-environment.log
+run_wsman_ps $hyperv $WIN_USER $WIN_PASS "C:\OpenStack\oslo-ci\Hyper-V\cleanup.ps1" | tee -a create-environment.log
 gzip -9 unittest_output.log
 gzip -9 create-environment.log
 ssh -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH_KEY logs@logs.openstack.tld "if [ -z '$ZUUL_CHANGE' ] || [ -z '$ZUUL_PATCHSET' ]; then echo 'Missing parameters!'; exit 1; elif [ ! -d /srv/logs/$PROJECT_NAME/$ZUUL_CHANGE/$ZUUL_PATCHSET ]; then mkdir -p /srv/logs/$PROJECT_NAME/$ZUUL_CHANGE/$ZUUL_PATCHSET; else rm -rf /srv/logs/$PROJECT_NAME/$ZUUL_CHANGE/$ZUUL_PATCHSET/*; fi"
@@ -69,3 +70,4 @@ scp -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH
 set -e
 
 exit $result_run
+

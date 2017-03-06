@@ -1,6 +1,6 @@
 Param(
     [string]$branchName='master',
-    [string]$buildFor='',
+    [string]$buildFor=''
 )
 
 $ErrorActionPreference = "Stop"
