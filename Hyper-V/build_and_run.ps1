@@ -80,6 +80,7 @@ $ErrorActionPreference = "Continue"
 & pip install mock
 & pip install testresources
 & pip install testscenarios
+& pip install os.testr
 
 & pip install oslotest
 
@@ -88,6 +89,10 @@ $ErrorActionPreference = "Stop"
 
 ExecRetry {
     GitClonePull "$buildDir\requirements" "https://git.openstack.org/openstack/requirements.git" $branchName
+}
+
+ExecRetry {
+    GitClonePull "$buildDir\subunit" "https://github.com/testing-cabal/subunit" master
 }
 
 ExecRetry {
@@ -117,7 +122,7 @@ ExecRetry {
 ExecRetry {
     pushd $buildDir\stestr
     & pip install -r $buildDir\stestr\requirements.txt .
-    if ($LastExitCode) { Throw "Failed to install $projectNameInstall from repo" }
+    if ($LastExitCode) { Throw "Failed to install stestr from repo" }
     popd
 }
 
@@ -154,7 +159,19 @@ if ($proc.State -eq "Running")
 $result = Receive-Job -Id $proc.Id -ErrorAction Continue
 Remove-Job -Id $proc.Id
 
+ExecRetry {
+    pushd $buildDir\subunit
+    & pip install .
+    if ($LastExitCode) { Throw "Failed to install subunit from repo" }
+    popd
+}
+
+pushd $buildDir\$projectName\.stestr
+Move-Item 0 $openstackLogs\subunit.out
+subunit2html.exe $openstackLogs\subunit.out $openstackLogs\results.html
+
 Add-Content $openstackLogs\unittest_output.txt $result
+pip freeze > $openstackLogs\pip_freeze.log
 
 $exitcode = $result[-1][-1]
 
