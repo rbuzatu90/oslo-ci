@@ -138,7 +138,7 @@ Try {
 }
 
 Try {
-   $proc = Start-Job -Name "UnitTests" -Init ([ScriptBlock]::Create("Set-Location $buildDir\$projectName")) -ScriptBlock { pwd; stestr --tests-path . run; Write-Output "Exit code: $LASTEXITCODE" }
+   $proc = Start-Job -Name "UnitTests" -Init ([ScriptBlock]::Create("Set-Location $buildDir\$projectName")) -ScriptBlock { pwd; stestr --test-path . run; Write-Output "Exit code: $LASTEXITCODE" }
 } Catch {
     Throw "Could not start the unit tests job."
 }
