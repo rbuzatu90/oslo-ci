@@ -80,6 +80,7 @@ $ErrorActionPreference = "Continue"
 & pip install mock
 & pip install testresources
 & pip install testscenarios
+& pip install os.testr
 
 & pip install oslotest
 
@@ -88,6 +89,14 @@ $ErrorActionPreference = "Stop"
 
 ExecRetry {
     GitClonePull "$buildDir\requirements" "https://git.openstack.org/openstack/requirements.git" $branchName
+}
+
+ExecRetry {
+    GitClonePull "$buildDir\subunit" "https://github.com/testing-cabal/subunit" master
+}
+
+ExecRetry {
+    GitClonePull "$buildDir\stestr" "https://github.com/mtreinish/stestr.git" master
 }
 
 ExecRetry {
@@ -110,6 +119,13 @@ ExecRetry {
     popd
 }
 
+ExecRetry {
+    pushd $buildDir\stestr
+    & pip install -r $buildDir\stestr\requirements.txt .
+    if ($LastExitCode) { Throw "Failed to install stestr from repo" }
+    popd
+}
+
 if (Test-Path "$buildDir\$projectName\test-requirements.txt")
 {
     $ErrorActionPreference = "Continue"
@@ -121,7 +137,13 @@ $currDate = (Get-Date).ToString()
 Write-Output "$currDate Running unit tests."
 
 Try {
-   $proc = Start-Job -Name "UnitTests" -Init ([ScriptBlock]::Create("Set-Location $buildDir\$projectName")) -ScriptBlock { pwd; cmd /c "python -m unittest discover 2>&1"; Write-Output "Exit code: $LASTEXITCODE" }
+   $proc = Start-Job -Name "UnitTests" -Init ([ScriptBlock]::Create("Set-Location $buildDir\$projectName")) -ScriptBlock { pwd; stestr init; Write-Output "Exit code: $LASTEXITCODE" }
+} Catch {
+    Throw "Could not start the unit tests job."
+}
+
+Try {
+   $proc = Start-Job -Name "UnitTests" -Init ([ScriptBlock]::Create("Set-Location $buildDir\$projectName")) -ScriptBlock { pwd; stestr --test-path . run; Write-Output "Exit code: $LASTEXITCODE" }
 } Catch {
     Throw "Could not start the unit tests job."
 }
@@ -137,7 +159,19 @@ if ($proc.State -eq "Running")
 $result = Receive-Job -Id $proc.Id -ErrorAction Continue
 Remove-Job -Id $proc.Id
 
+ExecRetry {
+    pushd $buildDir\subunit
+    & pip install .
+    if ($LastExitCode) { Throw "Failed to install subunit from repo" }
+    popd
+}
+
+pushd $buildDir\$projectName\.stestr
+Move-Item 0 $openstackLogs\subunit.out
+subunit2html.exe $openstackLogs\subunit.out $openstackLogs\results.html
+
 Add-Content $openstackLogs\unittest_output.txt $result
+pip freeze > $openstackLogs\pip_freeze.log
 
 $exitcode = $result[-1][-1]
 
