@@ -91,6 +91,10 @@ ExecRetry {
 }
 
 ExecRetry {
+    GitClonePull "$buildDir\stestr" "https://github.com/mtreinish/stestr.git" master
+}
+
+ExecRetry {
     pushd "$buildDir\requirements"
     Write-Output "Installing OpenStack/Requirements..."
     & pip install -c upper-constraints.txt -U pbr virtualenv httplib2 prettytable>=0.7 setuptools
@@ -106,6 +110,13 @@ ExecRetry {
     & pip install -r $buildDir\$projectName\requirements.txt
     if ($LastExitCode) { Throw "Failed to install $projectNameInstall requirements" }
     & pip install -e $buildDir\$projectName
+    if ($LastExitCode) { Throw "Failed to install $projectNameInstall from repo" }
+    popd
+}
+
+ExecRetry {
+    pushd $buildDir\stestr
+    & pip install -r $buildDir\stestr\requirements.txt .
     if ($LastExitCode) { Throw "Failed to install $projectNameInstall from repo" }
     popd
 }
