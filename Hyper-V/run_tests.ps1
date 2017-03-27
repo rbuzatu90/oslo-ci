@@ -10,10 +10,6 @@ $scriptLocation = [System.IO.Path]::GetDirectoryName($myInvocation.MyCommand.Def
 . "$scriptLocation\config.ps1"
 . "$scriptLocation\utils.ps1"
 
-if (Test-Path "$buildDir\$projectName\.stestr") {
-    Remove-Item -Force -Recurse "$buildDir\$projectName\.stestr"
-}
-
 Try {
    $proc = Start-Job -Name "UnitTests" -Init ([ScriptBlock]::Create("Set-Location $buildDir\$projectName")) -ScriptBlock { pwd; stestr init; Write-Output "Exit code: $LASTEXITCODE" }
 } Catch {
