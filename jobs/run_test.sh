@@ -56,7 +56,8 @@ run_wsman_ps $hyperv $WIN_USER $WIN_PASS 'Remove-Item -Recurse -Force C:\OpenSta
 
 set +e
 run_wsman_cmd $hyperv $WIN_USER $WIN_PASS '"bash C:\OpenStack\oslo-ci\Hyper-V\gerrit-git-prep.sh --zuul-site '$ZUUL_SITE' --gerrit-site '$ZUUL_SITE' --zuul-ref '$ZUUL_REF' --zuul-change '$ZUUL_CHANGE' --zuul-project '$ZUUL_PROJECT' 2>&1"' | tee -a create-environment-$ZUUL_UUID.log
-run_wsman_ps $hyperv $WIN_USER $WIN_PASS '"C:\OpenStack\oslo-ci\Hyper-V\build_and_run.ps1 -branchName '$ZUUL_BRANCH' -buildFor '$ZUUL_PROJECT' 2>&1"' | tee -a create-environment-$ZUUL_UUID.log
+run_wsman_ps $hyperv $WIN_USER $WIN_PASS '"C:\OpenStack\oslo-ci\Hyper-V\create-environment.ps1 -branchName '$ZUUL_BRANCH' -buildFor '$ZUUL_PROJECT' 2>&1"' | tee -a create-environment-$ZUUL_UUID.log
+run_wsman_ps $hyperv $WIN_USER $WIN_PASS '"C:\OpenStack\oslo-ci\Hyper-V\run_tests.ps1 -buildFor '$ZUUL_PROJECT' 2>&1"' | tee -a create-environment-$ZUUL_UUID.log
 result_run=$?
 
 run_wsman_ps $hyperv $WIN_USER $WIN_PASS "Get-Content $windows_logs_folder\unittest_output.txt" | tee unittest_output-$ZUUL_UUID.log
