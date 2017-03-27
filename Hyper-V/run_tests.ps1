@@ -54,10 +54,4 @@ pip freeze > $openstackLogs\pip_freeze.log
 $exitcode = $result[-1][-1]
 
 $currDate = (Get-Date).ToString()
-Write-Output "$currDate Finished running unit tests."
-if ($exitcode.ToString() -ne "0")
-{
-    Throw "Unit tests result exit code: $exitcode"
-} else {
-    Write-Output "Unit tests result exit code: $exitcode"
-}
+Write-Output "$currDate Unit tests result exit code: $exitcode"
