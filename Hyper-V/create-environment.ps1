@@ -136,5 +136,6 @@ if (Test-Path "$buildDir\$projectName\test-requirements.txt")
 $currDate = (Get-Date).ToString()
 Write-Output "$currDate Done building env"
 
+pushd "$builDir"
 ./run_tests.ps1 -buildFor 'openstack/oslo.utils'
 
