@@ -133,6 +133,10 @@ if (Test-Path "$buildDir\$projectName\test-requirements.txt")
     $ErrorActionPreference = "Stop"
 }
 
+if (Test-Path "$buildDir\$projectName\.stestr") {
+    Remove-Item -Force -Recurse "$buildDir\$projectName\.stestr"
+}
+
 $currDate = (Get-Date).ToString()
 Write-Output "$currDate Running unit tests."
 
