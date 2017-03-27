@@ -62,6 +62,7 @@ result_run=$?
 run_wsman_ps $hyperv $WIN_USER $WIN_PASS "Get-Content $windows_logs_folder\unittest_output.txt" | tee unittest_output-$ZUUL_UUID.log
 run_wsman_ps $hyperv $WIN_USER $WIN_PASS "Get-Content $windows_logs_folder\subunit.out" | tee subunit-$ZUUL_UUID.log
 run_wsman_ps $hyperv $WIN_USER $WIN_PASS "Get-Content $windows_logs_folder\pip_freeze.log" | tee pip_freeze-$ZUUL_UUID.log
+run_wsman_ps $hyperv $WIN_USER $WIN_PASS "Get-Content $windows_logs_folder\run_tests.log" | tee run_tests-$ZUUL_UUID.log
 run_wsman_ps $hyperv $WIN_USER $WIN_PASS "Get-Content $windows_logs_folder\results.html" | tee results-$ZUUL_UUID.html
 
 if [[ -z $IS_DEBUG_JOB ]] || [[ $IS_DEBUG_JOB == "no" ]]; then
@@ -71,6 +72,7 @@ fi
 gzip -9 unittest_output-$ZUUL_UUID.log
 gzip -9 create-environment-$ZUUL_UUID.log
 gzip -9 pip_freeze-$ZUUL_UUID.log
+gzip -9 run_tests-$ZUUL_UUID.log
 gzip -9 subunit-$ZUUL_UUID.log
 gzip -9 results-$ZUUL_UUID.html
 
@@ -78,6 +80,7 @@ ssh -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH
 scp -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH_KEY "unittest_output-$ZUUL_UUID.log.gz" logs@logs.openstack.tld:/srv/logs/$PROJECT_NAME/$ZUUL_CHANGE/$ZUUL_PATCHSET/unittest_output.log.gz
 scp -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH_KEY "subunit-$ZUUL_UUID.log.gz" logs@logs.openstack.tld:/srv/logs/$PROJECT_NAME/$ZUUL_CHANGE/$ZUUL_PATCHSET/subunit.log.gz
 scp -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH_KEY "pip_freeze-$ZUUL_UUID.log.gz" logs@logs.openstack.tld:/srv/logs/$PROJECT_NAME/$ZUUL_CHANGE/$ZUUL_PATCHSET/pip_freeze.log.gz
+scp -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH_KEY "run_tests-$ZUUL_UUID.log.gz" logs@logs.openstack.tld:/srv/logs/$PROJECT_NAME/$ZUUL_CHANGE/$ZUUL_PATCHSET/run_tests.log.gz
 scp -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH_KEY "results-$ZUUL_UUID.html.gz" logs@logs.openstack.tld:/srv/logs/$PROJECT_NAME/$ZUUL_CHANGE/$ZUUL_PATCHSET/results.html.gz
 scp -o "UserKnownHostsFile /dev/null" -o "StrictHostKeyChecking no" -i $LOGS_SSH_KEY "create-environment-$ZUUL_UUID.log.gz" logs@logs.openstack.tld:/srv/logs/$PROJECT_NAME/$ZUUL_CHANGE/$ZUUL_PATCHSET/create-environment.log.gz
 

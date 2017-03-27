@@ -137,5 +137,5 @@ $currDate = (Get-Date).ToString()
 Write-Output "$currDate Done building env"
 
 pushd "$baseDir"
-./run_tests.ps1 -buildFor 'openstack/oslo.utils'
+./run_tests.ps1 -buildFor 'openstack/oslo.utils' > "$openstackLogs\run_tests.log"
 
